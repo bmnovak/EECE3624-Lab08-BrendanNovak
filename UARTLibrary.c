@@ -3,8 +3,8 @@
  *  Lab Name: (Needed for Lab07 and Lab08)
  *    Author: Dr. Greg Nordstrom
  *   Created: 3/3/2019
- *  Modified: 
- *  Mod Date:
+ *  Modified: Brendan Novak
+ *  Mod Date: 10/20/2026
  * Processor: ATmega128A (on the ReadyAVR board)
  *
  * This is intended to be compiled as an AVR Library Project and
@@ -35,15 +35,39 @@
 void uart_init(long unsigned int baudrate, unsigned char databits, unsigned char stopbits, unsigned char parity) {
     /* your code here */
 	// set baud rate (via UBRR0 high and low registers)
-    
+    unsigned int ubrr_val;
+	
+	ubrr_val = (F_OSC / (16UL * baudrate)) - 1;
+	UBRR1H = (unsigned char)(ubrr_val >> 8);
+	UBRR1L = (unsigned char)ubrr_val;
+	
 	// set databits
-    
+    unsigned char ucsrc = (1 << UCSZ11) | (1 << UCSZ10);
+	if (databits == 7) {
+		ucsrc = (1 << UCSZ10);
+	}
+	else if (databits == 8) {
+		ucsrc = (1 << UCSZ11) | (1 << UCSZ10);
+	}
+	
 	// set parity
-    
+    if (parity == 1) {
+		ucsrc |= (1 << UPM11) | (1 << UPM10);
+	}
+	else if (parity == 2) {
+		ucsrc |= (1 << UPM11);
+	}
+	
     // set stopbits
-    
+    if (stopbits == 2) {
+		ucsrc |= (1 << USBS1);
+	}
+	
+	UCSR1C = ucsrc;
+	
 	// finally, enable receiver and transmitter
     
+	UCSR1B = (1 << RXEN1) | (1 << TXEN1);
 }
 
 // This function waits for space in the USART transmit buffer. When space
@@ -52,7 +76,8 @@ void uart_init(long unsigned int baudrate, unsigned char databits, unsigned char
 // checking is performed and the function does not return a value.
 void uart_tx(unsigned char data) {
     /* your code here */
-
+	while (!(UCSR1A & (1 << UDRE1)));
+	UDR1 = data;
 }
 
 // This function blocks until a character is received in the USART input
@@ -60,5 +85,6 @@ void uart_tx(unsigned char data) {
 // an unsigned character. No error checking is performed.
 unsigned char uart_rx(void) {
 	/* your code here */
-    
+	while (!(UCSR1A & (1 << RXC1)));
+	return UDR1;    
 }
